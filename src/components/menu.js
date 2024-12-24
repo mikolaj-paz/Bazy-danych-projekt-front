@@ -1,8 +1,25 @@
+import Link from "next/link";
+
 export const Menu = () => {
     return (
-        <div className="h-full fixed z-10 top-0 left-0 bg-black overflow-x-hidden text-white">
-            <p>Klienci</p>
-            <p>Naprawy</p>
+        <div className="overflow-hidden bg-slate-700">
+            <Link className="float-left block text-white text-center p-4"
+                  href="/dashboard/naprawy">
+                Naprawy
+            </Link>
+            <Link className="float-left block text-white text-center p-4"
+                  href="/dashboard/klienci">
+                Klienci
+            </Link>
+            <Link className="float-left block text-white text-center p-4"
+                  href="/dashboard/mechanicy">
+                Mechanicy
+            </Link>
+            <Link className="float-left block text-white text-center p-4"
+                  href="/dashboard/klienci">
+                Pojazdy
+            </Link>
+            
         </div>
     )
 };

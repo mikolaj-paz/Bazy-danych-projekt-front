@@ -8,8 +8,9 @@ export async function signup( formData ) {
     
     const login = formData.get('login')
     const password = formData.get('password')
+    const isAdmin = formData.get('admin') == null ? false : true;
 
-    console.log(login, password)
+    console.log(login, password, isAdmin)
 
     await createSession('1')
     redirect('/dashboard')
