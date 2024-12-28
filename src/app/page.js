@@ -3,9 +3,21 @@
 import { Button, Checkbox, Form, Input, Switch } from "@nextui-org/react";
 import { signup } from "./actions/auth";
 
+import Image from "next/image";
+
 export default function Home() {
     return (
-        <div className="flex items-center justify-center h-screen">
+        <div className="flex flex-col items-center justify-center h-screen">
+            <Image 
+                src="/mechanic-svgrepo-com.svg"
+                width={800}
+                height={800}
+                alt="Logo"
+                style={{
+                width: "6rem",
+                }}
+                className="m-6"
+            />
             <Form action={signup}>
                 <Input 
                     isRequired
@@ -28,21 +40,6 @@ export default function Home() {
                     </Button>
                 </div>
             </Form>
-            {/* <form action={signup}>
-                <div className="p-1">
-                    <input type="text" name="login" placeholder="Login" required
-                        className="border p-2 mr-2"
-                    />
-                </div>
-                <div className="p-1">
-                    <input type="password" name="password" placeholder="Hasło" required
-                        className="border p-2 mr-2"
-                    />
-                </div>
-                <div className="flex justify-center p-1">
-                    <button type="submit" className="border p-2 mr-2">Zaloguj</button>
-                </div>
-            </form> */}
-        </div>
+       </div>
     )
 }
