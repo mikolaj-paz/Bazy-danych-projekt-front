@@ -1,9 +1,5 @@
 import { redirect } from "next/navigation"
 
-export default function Dashboard() {
-    redirect('/dashboard/klienci')
-
-    return (
-        <p>Dashboard</p>
-    )
+export default async function Dashboard() {
+    redirect('/dashboard/naprawy')
 }

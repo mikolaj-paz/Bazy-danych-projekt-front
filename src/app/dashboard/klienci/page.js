@@ -92,7 +92,7 @@ export default function Klienci() {
             <div className="flex justify-between items-end mx-4">
                 <Input 
                     isClearable
-                    className="w-full sm:max-w-[44%]"
+                    className="w-full sm:max-w-[33%]"
                     placeholder="Wyszukaj..."
                     startContent={<Image 
                         src="/search-svgrepo-com.svg"

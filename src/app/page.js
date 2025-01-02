@@ -35,7 +35,7 @@ export default function Home() {
                     <Checkbox type="checkbox" name="admin">
                         Administrator
                     </Checkbox>
-                    <Button type="submit" variant="bordered">
+                    <Button type="submit" variant="solid" color="primary">
                         Zaloguj
                     </Button>
                 </div>

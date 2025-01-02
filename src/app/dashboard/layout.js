@@ -18,7 +18,7 @@ export default function DashboardLayout({ children }) {
               }}
               className="mr-2"
             />
-            <p className="font-bold">WARSZTAT</p>
+            <p className="font-bold text-inherit">WARSZTAT</p>
           </NavbarBrand>
           <NavbarContent className="hidden sm:flex gap-4" justify="center">
             <NavbarItem>
