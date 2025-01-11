@@ -9,6 +9,7 @@ export default function Home() {
     return (
         <div className="flex flex-col items-center justify-center h-screen">
             <Image 
+                priority
                 src="/mechanic-svgrepo-com.svg"
                 width={800}
                 height={800}
@@ -18,7 +19,7 @@ export default function Home() {
                 }}
                 className="m-6"
             />
-            <Form action={signup}>
+            <Form className="w-64" action={signup}>
                 <Input 
                     isRequired
                     name="login"
@@ -31,11 +32,11 @@ export default function Home() {
                     label="Hasło"
                     type="password"
                 />
-                <div className="flex gap-4">
-                    <Checkbox type="checkbox" name="admin">
+                <div className="flex justify-center gap-4 w-full">
+                    {/* <Checkbox type="checkbox" name="admin">
                         Administrator
-                    </Checkbox>
-                    <Button type="submit" variant="solid" color="primary">
+                    </Checkbox> */}
+                    <Button className="w-3/4 rounded-full mt-4" type="submit" variant="solid" color="primary">
                         Zaloguj
                     </Button>
                 </div>
