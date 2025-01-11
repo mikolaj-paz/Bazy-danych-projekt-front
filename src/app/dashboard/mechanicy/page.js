@@ -1,13 +1,13 @@
 'use client'
 
 import React, { useState } from "react";
-import { Table, TableHeader, TableBody, TableColumn, TableRow, TableCell, getKeyValue, Spinner, useDisclosure, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Form, Input } 
+import { Table, TableHeader, TableBody, TableColumn, TableRow, TableCell, Spinner, useDisclosure, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Form, Input, Textarea, getKeyValue } 
 from "@nextui-org/react";
 import { useAsyncList } from "@react-stately/data";
 import Image from "next/image";
 import { getToken } from "@/app/actions/auth";
 
-export default function Klienci() {
+export default function Naprawy() {
     const [isLoading, setIsLoading] = React.useState(true);
     const [filterValue, setFilterValue] = React.useState("");
     const [maxId, setMaxId] = React.useState(0);
@@ -15,59 +15,58 @@ export default function Klienci() {
     const hasSearchFilter = Boolean(filterValue);
 
     let list = useAsyncList({
-            async load({ signal }) {
-                console.log("is here");
-                const res = await fetch('http://192.168.1.108:8080/klienci', {
-                    signal,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${await getToken()}`,
+        async load({ signal }) {
+            const res = await fetch('http://192.168.1.108:8080/mechanicy', {
+                signal,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${await getToken()}`,
+                }
+            });
+            let json = await res.json();
+
+            let maxValue = maxId;
+            json.map((el) => {
+                const valueFromObject = el.mechanikID;
+                maxValue = Math.max(maxValue, valueFromObject);
+            });
+            setMaxId(maxValue + 1);
+
+            setIsLoading(false);
+
+            return {
+                items: json,
+            };
+        },
+        async sort({items, sortDescriptor}) {
+            return {
+                items: items.sort((a, b) => {
+                    let first = a[sortDescriptor.column];
+                    let second = b[sortDescriptor.column];
+                    let cmp = (parseInt(first) || first) < (parseInt(second) || second) ? -1 : 1;
+
+                    if (sortDescriptor.direction === "ascending") {
+                        cmp *= -1;
                     }
-                });
-                let json = await res.json();
-    
-                let maxValue = maxId;
-                json.map((el) => {
-                    const valueFromObject = el.klientID;
-                    maxValue = Math.max(maxValue, valueFromObject);
-                });
-                setMaxId(maxValue + 1);
-    
-                setIsLoading(false);
-    
-                return {
-                    items: json,
-                };
-            },
-            async sort({items, sortDescriptor}) {
-                return {
-                    items: items.sort((a, b) => {
-                        let first = a[sortDescriptor.column];
-                        let second = b[sortDescriptor.column];
-                        let cmp = (parseInt(first) || first) < (parseInt(second) || second) ? -1 : 1;
-    
-                        if (sortDescriptor.direction === "ascending") {
-                            cmp *= -1;
-                        }
-    
-                        return cmp;
-                    }),
-                };
-            },
-        });
+
+                    return cmp;
+                }),
+            };
+        },
+    });
 
     const items = React.useMemo(() => {
-        let filteredUsers = [...list.items];
+        let filteredMechanics = [...list.items];
 
         if (hasSearchFilter) {
-            filteredUsers = filteredUsers.filter((user) => 
+            filteredMechanics = filteredMechanics.filter((mechanic) => 
                 (
-                    user.klientID + user.imie + user.nazwisko + user.telefon + user.email
+                    mechanic.mechanikID + mechanic.czyZatrudniony + mechanic.imie + mechanic.login + mechanic.nazwisko
                 ).toLowerCase().includes(filterValue.toLowerCase())
             );
         }
 
-        return filteredUsers;
+        return filteredMechanics;
     }, [list.items, filterValue]);
 
     const onSearchChange = React.useCallback((value) => {
@@ -79,7 +78,7 @@ export default function Klienci() {
         }
         list.reload;
     }, []);
-
+    
     const onClear = React.useCallback(() => {
         setFilterValue("");
         list.reload;
@@ -92,14 +91,16 @@ export default function Klienci() {
     const [modalHeader, setModalHeader] = useState("");
 
     const addItem = () => {
-        setModalHeader("Nowy wpis");
+        setModalHeader("Dodawanie nowego pracownika");
         setNew(true);
         newModal.onOpen();
     }
-    
+
     const editItem = (item) => {
-        setModalHeader("Edytowanie wpisu");
+        setModalHeader("Edytowanie profilu");
+
         setNew(false);
+
         setObj(item);
         editModal.onOpen();
     };
@@ -107,9 +108,8 @@ export default function Klienci() {
     const onSubmit = async (e) => {
         e.preventDefault();
         const data = Object.fromEntries(new FormData(e.currentTarget));
-        
         if (isNew) {
-            const res = await fetch('http://192.168.1.108:8080/dodaj/klienta', {
+            const res = await fetch('http://192.168.1.108:8080/dodaj/mechanika', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -118,27 +118,24 @@ export default function Klienci() {
                 body: JSON.stringify({
                     imie: data.imie,
                     nazwisko: data.nazwisko,
-                    telefon: data.telefon,
-                    email: data.email,
+                    login: data.login,
+                    haslo: data.haslo,
                 })
-            })
+            });
 
             console.log(res);
         }
         else {
-            const res = await fetch('http://192.168.1.108:8080/modyfikuj/dane/klienta', {
+            const res = await fetch('http://192.168.1.108:8080/zwolnij/mechanika', {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${await getToken()}`,
                 },
                 body: JSON.stringify({
-                    imie: data.imie,
-                    nazwisko: data.nazwisko,
-                    telefon: data.telefon,
-                    email: data.email,
+                    login: data.login,
                 })
-            })
+            });
 
             console.log(res);
         }
@@ -169,18 +166,18 @@ export default function Klienci() {
                     onValueChange={onSearchChange}
                 />
                 <Button isDisabled={isLoading} variant="flat" color="success" onPress={() => addItem()}>
-                    Dodaj wpis
+                    Dodaj nowego mechanika
                 </Button>
             </div>
             <div className="p-4">
                 <Table
                     removeWrapper
-                    aria-label="Clients table"
+                    aria-label="Mechanics table"
                     sortDescriptor={list.sortDescriptor}
                     onSortChange={list.sort}
-                >
+                    >
                     <TableHeader>
-                        <TableColumn key="klientID" allowsSorting>
+                        <TableColumn key="mechanikID" allowsSorting>
                             ID
                         </TableColumn>
                         <TableColumn key="imie" allowsSorting>
@@ -189,28 +186,25 @@ export default function Klienci() {
                         <TableColumn key="nazwisko" allowsSorting>
                             Nazwisko
                         </TableColumn>
-                        <TableColumn key="telefon" allowsSorting>
-                            Telefon
+                        <TableColumn key="czyZatrudniony" allowsSorting>
+                            Zatrudnienie
                         </TableColumn>
-                        <TableColumn key="email" allowsSorting>
-                            E-mail
+                        <TableColumn key="login" allowsSorting>
+                            Login
                         </TableColumn>
-                        {/* <TableColumn>
-                            Pojazd
-                        </TableColumn> */}
                     </TableHeader>
                     <TableBody 
                         emptyContent={"Brak wpisów do wyświetlenia."}
                         isLoading={isLoading}
                         items={items}
                         loadingContent={<Spinner label="Ładowanie..." />}
-                    >
+                        >
                         {(item) => (
                             <TableRow 
-                                key={item.klientID}
-                                as={Button}
-                                onClick={() => editItem(item)}
-                                className="hover:bg-gray-100 cursor-pointer"
+                            key={item.mechanikID}
+                            as={Button}
+                            onClick={() => editItem(item)}
+                            className="hover:bg-gray-100 cursor-pointer"
                             >
                                 {(columnKey) => <TableCell>{getKeyValue(item, columnKey)}</TableCell>}
                             </TableRow>
@@ -222,58 +216,65 @@ export default function Klienci() {
                 <Modal isOpen={editModal.isOpen} onOpenChange={editModal.onOpenChange} scrollBehavior="outside" size="sm">
                     <ModalContent>
                         {(onClose) => (
-                                <Form onSubmit={onSubmit} autoComplete="off">
-                                    <ModalHeader className="flex flex-col gap-1">{modalHeader}</ModalHeader>
-                                    <ModalBody>
-                                        <Input 
-                                            className="w-20"
-                                            isReadOnly
-                                            label="ID"
-                                            name="klientID"
-                                            defaultValue={obj["klientID"]}
-                                            labelPlacement="outside-left"
-                                        />
-                                        <Input
-                                            label="Imie"
-                                            name="imie"
-                                            defaultValue={obj["imie"]}
-                                            labelPlacement="outside-left"
-                                        />
-                                        <Input
-                                            label="Nazwisko"
-                                            name="nazwisko"
-                                            defaultValue={obj["nazwisko"]}
-                                            labelPlacement="outside-left"
-                                        />
-                                        <Input
-                                            label="Telefon"
-                                            name="telefon"
-                                            type="tel"
-                                            defaultValue={obj["telefon"]}
-                                            labelPlacement="outside-left"
-                                        />
-                                        <Input
-                                            label="E-mail"
-                                            name="email"
-                                            type="email"
-                                            defaultValue={obj["email"]}
-                                            labelPlacement="outside-left"
-                                        />
-                                    </ModalBody>
-                                    <ModalFooter>
-                                        <Button color="danger" variant="light" onPress={onClose}>
-                                            Anuluj
-                                        </Button>
-                                        <Button color="primary" type="submit" onPress={onClose}>
-                                            Zapisz zmiany
-                                        </Button>
-                                    </ModalFooter>
-                                    </Form>
+                            <Form onSubmit={onSubmit} autoComplete="off">
+                                <ModalHeader className="flex flex-col gap-1">{modalHeader}</ModalHeader>
+                                <ModalBody className="w-full">
+                                    <Input 
+                                        className="w-20"
+                                        isReadOnly
+                                        label="ID"
+                                        name="mechanikID"
+                                        defaultValue={obj["mechanikID"]}
+                                        labelPlacement="outside-left"
+                                    />
+                                    <Input
+                                        isReadOnly
+                                        label="Imię"
+                                        name="imie"
+                                        defaultValue={obj["imie"]}
+                                        labelPlacement="outside-left"
+                                    />
+                                    <Input
+                                        isReadOnly
+                                        label="Nazwisko"
+                                        name="nazwisko"
+                                        defaultValue={obj["nazwisko"]}
+                                        labelPlacement="outside-left"
+                                    />
+                                    <Input
+                                        className="w-36"
+                                        isReadOnly
+                                        label="Zatrudnienie"
+                                        name="zatrudnienie"
+                                        defaultValue={obj["czyZatrudniony"]}
+                                        color={obj["czyZatrudniony"] == "TAK" ? "success" : "danger"}
+                                        labelPlacement="outside-left"
+                                    />
+                                    <Input
+                                        isReadOnly
+                                        label="Login"
+                                        name="login"
+                                        defaultValue={obj["login"]}
+                                        labelPlacement="outside-left"
+                                    />
+                                </ModalBody>
+                                <ModalFooter>
+                                    <Button color="danger" variant="light" onPress={onClose}>
+                                        Anuluj
+                                    </Button>
+                                    <Button 
+                                        color="danger" variant="bordered" type="submit" onPress={onClose}
+                                        isDisabled={obj["czyZatrudniony"] == "NIE" }
+                                    >
+                                        Zwolnij
+                                    </Button>
+                                </ModalFooter>
+                            </Form>
                         )}
                     </ModalContent>
                 </Modal>
             )}
-
+            
             <Modal isOpen={newModal.isOpen} onOpenChange={newModal.onOpenChange} scrollBehavior="outside">
                 <ModalContent>
                     {(onClose) => (
@@ -285,21 +286,19 @@ export default function Klienci() {
                                     name="imie"
                                     labelPlacement="outside-left"
                                 />
-                                <Input
+                                <Input 
                                     label="Nazwisko"
                                     name="nazwisko"
                                     labelPlacement="outside-left"
                                 />
-                                <Input
-                                    label="Telefon"
-                                    name="telefon"
-                                    type="tel"
+                                <Input 
+                                    label="Login"
+                                    name="login"
                                     labelPlacement="outside-left"
                                 />
-                                <Input
-                                    label="E-mail"
-                                    name="email"
-                                    type="email"
+                                <Input 
+                                    label="Hasło"
+                                    name="haslo"
                                     labelPlacement="outside-left"
                                 />
                             </ModalBody>

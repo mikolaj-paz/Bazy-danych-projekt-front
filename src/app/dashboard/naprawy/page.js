@@ -5,6 +5,7 @@ import { Table, TableHeader, TableBody, TableColumn, TableRow, TableCell, Spinne
 from "@nextui-org/react";
 import { useAsyncList } from "@react-stately/data";
 import Image from "next/image";
+import { getToken } from "@/app/actions/auth";
 
 export default function Naprawy() {
     const [isLoading, setIsLoading] = React.useState(true);
@@ -14,10 +15,15 @@ export default function Naprawy() {
 
     let list = useAsyncList({
         async load({ signal }) {
-            const res = await fetch('https://67696ae7cbf3d7cefd3ac0d1.mockapi.io/mechanics',
-                { signal }
-            );
+            const res = await fetch('http://192.168.1.108:8080/naprawy', {
+                signal,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${await getToken()}`,
+                }
+            });
             let json = await res.json();
+            console.log(json);
 
             setIsLoading(false);
 
@@ -48,7 +54,7 @@ export default function Naprawy() {
         if (hasSearchFilter) {
             filteredRepairs = filteredRepairs.filter((repair) => 
                 (
-                    repair.naprawaid + repair.stan + repair.data_rozpoczecia + repair.data_zakonczenia + repair.protokol_naprawy + repair.opis_usterki
+                    repair.naprawaID + repair.stan + repair.data_rozpoczecia + repair.data_zakonczenia + repair.protokol_naprawy + repair.opis_usterki
                 ).toLowerCase().includes(filterValue.toLowerCase())
             );
         }
@@ -87,20 +93,63 @@ export default function Naprawy() {
         setModalHeader("Edytowanie wpisu");
         setNew(false);
         setObj(item);
+        console.log(item);
         editModal.onOpen();
     };
 
-    const onSubmit = (e) => {
+    const onSubmit = async (e) => {
         e.preventDefault();
         const data = Object.fromEntries(new FormData(e.currentTarget));
-        let [method, path] = isNew ? 
-                             ["POST", "dodaj/nowe_zgloszenie"] : 
-                             ["PATCH", ""];
-        console.log(data);
+        
+        if (isNew) {
+            let formattedObj = { klient: {}, pojazd: {}, mechanik: {
+                "imie": "",
+                "nazwisko": "",
+            }};
+            const clientAttr = [ "imie" , "nazwisko", "telefon", "email" ];
+            const vehicleAttr = [ "rejestracja", "marka", "model", "rocznik", "vin" ];
+            Object.entries(data).map(([key, value]) => {
+                if (clientAttr.includes(key))
+                    formattedObj.klient[key] = value;
+                else if (vehicleAttr.includes(key))
+                    formattedObj.pojazd[key] = value;
+            });
+    
+            const res = await fetch('http://192.168.1.108:8080/dodaj/nowe/zgloszenie', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${await getToken()}`,
+                },
+                body: JSON.stringify(formattedObj),
+            });
+
+            console.log(res);
+        }
+        else {
+            const res = await fetch('http://192.168.1.108:8080/przyjecie/naprawy', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${await getToken()}`,
+                },
+                body: JSON.stringify({
+                    naprawaID: data.naprawaID,
+                    "mechanik": { "login": data.login },
+                })
+            })
+
+            console.log(res)
+        }
+
+        list.reload();
     }
 
     const renderCell = React.useCallback((repair, columnKey) => {
         const cellValue = repair[columnKey]
+
+        if (cellValue == null)
+            return "brak";
 
         switch (columnKey) {
             case "opis_usterki":
@@ -152,7 +201,7 @@ export default function Naprawy() {
                     onSortChange={list.sort}
                     >
                     <TableHeader>
-                        <TableColumn key="naprawaid" allowsSorting>
+                        <TableColumn key="naprawaID" allowsSorting>
                             ID
                         </TableColumn>
                         <TableColumn key="stan" allowsSorting>
@@ -185,7 +234,7 @@ export default function Naprawy() {
                         >
                         {(item) => (
                             <TableRow 
-                            key={item.naprawaid}
+                            key={item.naprawaID}
                             as={Button}
                             onClick={() => editItem(item)}
                             className="hover:bg-gray-100 cursor-pointer"
@@ -204,14 +253,15 @@ export default function Naprawy() {
                                 <ModalHeader className="flex flex-col gap-1">{modalHeader}</ModalHeader>
                                 <ModalBody className="w-full">
                                     <Input 
-                                        className="w-24"
+                                        className="w-20"
                                         isReadOnly
                                         label="ID"
-                                        name="naprawaid"
-                                        defaultValue={obj["naprawaid"]}
+                                        name="naprawaID"
+                                        defaultValue={obj["naprawaID"]}
                                         labelPlacement="outside-left"
                                     />
                                     <Input
+                                        isReadOnly
                                         label="Stan"
                                         name="stan"
                                         defaultValue={obj["stan"]}
@@ -225,12 +275,14 @@ export default function Naprawy() {
                                         labelPlacement="outside-left"
                                     />
                                     <Input
+                                        isReadOnly
                                         label="Data Zakończenia"
                                         name="dataZakonczenia"
                                         defaultValue={obj["dataZakonczenia"]}
                                         labelPlacement="outside-left"
                                     />
                                     <Textarea 
+                                        isReadOnly
                                         className="w-full"
                                         label="Opis usterki"
                                         name="opis_usterki"
@@ -238,19 +290,30 @@ export default function Naprawy() {
                                         labelPlacement="outside"
                                     />
                                     <Textarea 
+                                        isReadOnly
                                         className="w-full"
                                         label="Protokół naprawy"
                                         name="protokol_naprawy"
                                         defaultValue={obj["protokol_naprawy"]}
                                         labelPlacement="outside"
                                     />
+                                    <Input 
+                                        isReadOnly={obj["mechanik"] ? true : false}
+                                        label="Login mechanika"
+                                        name="login"
+                                        defaultValue={obj["mechanik"] ? obj["mechanik"].login : null}
+                                        color={obj["mechanik"] ? "default" : "warning"}
+                                        labelPlacement="outside-left"
+                                    />
                                 </ModalBody>
                                 <ModalFooter>
                                     <Button color="danger" variant="light" onPress={onClose}>
                                         Zamknij
                                     </Button>
-                                    <Button color="primary" type="submit" onPress={onClose}>
-                                        Zapisz
+                                    <Button color="primary" type="submit" onPress={onClose}
+                                        isDisabled={obj["mechanik"] ? true : false}
+                                    >
+                                        Przypisz mechanika
                                     </Button>
                                 </ModalFooter>
                             </Form>
@@ -260,73 +323,73 @@ export default function Naprawy() {
             )}
             
             <Modal isOpen={newModal.isOpen} onOpenChange={newModal.onOpenChange} scrollBehavior="outside">
-                <ModalContent>
-                    {(onClose) => (
-                        <Form onSubmit={onSubmit} autoComplete="off">
-                            <ModalHeader className="flex flex-col gap-1">{modalHeader}</ModalHeader>
-                            <ModalBody className="w-full">
-                                <h1>Klient</h1>
-                                <Input
-                                    label="Imię"
-                                    name="imie"
-                                    labelPlacement="outside-left"
-                                />
-                                <Input 
-                                    label="Nazwisko"
-                                    name="nazwisko"
-                                    labelPlacement="outside-left"
-                                />
-                                <Input 
-                                    label="Telefon"
-                                    name="telefon"
-                                    type="tel"
-                                    labelPlacement="outside-left"
-                                />
-                                <Input 
-                                    label="Email"
-                                    name="email"
-                                    type="email"
-                                    labelPlacement="outside-left"
-                                />
-                                <h1>Pojazd</h1>
-                                <Input 
-                                    label="Rejestracja"
-                                    name="rejestracja"
-                                    labelPlacement="outside-left"
-                                />
-                                <Input 
-                                    label="Marka"
-                                    name="marka"
-                                    labelPlacement="outside-left"
-                                />
-                                <Input 
-                                    label="Model"
-                                    name="model"
-                                    labelPlacement="outside-left"
-                                />
-                                <Input 
-                                    label="Rocznik"
-                                    name="rocznik"
-                                    labelPlacement="outside-left"
-                                />
-                                <Input 
-                                    label="VIN"
-                                    name="vin"
-                                    labelPlacement="outside-left"
-                                />
-                            </ModalBody>
-                            <ModalFooter>
-                                <Button color="danger" variant="light" onPress={onClose}>
-                                    Zamknij
-                                </Button>
-                                <Button color="primary" type="submit" onPress={onClose}>
-                                    Zapisz
-                                </Button>
-                            </ModalFooter>
-                        </Form>
-                    )}
-                </ModalContent>
-            </Modal>
+                            <ModalContent>
+                                {(onClose) => (
+                                    <Form onSubmit={onSubmit} autoComplete="off">
+                                        <ModalHeader className="flex flex-col gap-1">{modalHeader}</ModalHeader>
+                                        <ModalBody className="w-full">
+                                            <h1>Klient</h1>
+                                            <Input
+                                                label="Imię"
+                                                name="imie"
+                                                labelPlacement="outside-left"
+                                            />
+                                            <Input 
+                                                label="Nazwisko"
+                                                name="nazwisko"
+                                                labelPlacement="outside-left"
+                                            />
+                                            <Input 
+                                                label="Telefon"
+                                                name="telefon"
+                                                type="tel"
+                                                labelPlacement="outside-left"
+                                            />
+                                            <Input 
+                                                label="Email"
+                                                name="email"
+                                                type="email"
+                                                labelPlacement="outside-left"
+                                            />
+                                            <h1>Pojazd</h1>
+                                            <Input 
+                                                label="Rejestracja"
+                                                name="rejestracja"
+                                                labelPlacement="outside-left"
+                                            />
+                                            <Input 
+                                                label="Marka"
+                                                name="marka"
+                                                labelPlacement="outside-left"
+                                            />
+                                            <Input 
+                                                label="Model"
+                                                name="model"
+                                                labelPlacement="outside-left"
+                                            />
+                                            <Input 
+                                                label="Rocznik"
+                                                name="rocznik"
+                                                labelPlacement="outside-left"
+                                            />
+                                            <Input 
+                                                label="VIN"
+                                                name="vin"
+                                                labelPlacement="outside-left"
+                                            />
+                                            </ModalBody>
+                                        <ModalFooter>
+                                            <Button color="danger" variant="light" onPress={onClose}>
+                                                Anuluj
+                                            </Button>
+                                            <Button color="primary" type="submit" onPress={onClose}>
+                                                Zatwierdź
+                                            </Button>
+                                        </ModalFooter>
+                                    </Form>
+                                )}
+                            </ModalContent>
+                        </Modal>
         </>
     )
 }
