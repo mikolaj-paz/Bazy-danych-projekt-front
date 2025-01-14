@@ -1,17 +1,24 @@
 'use client'
 
 import React, { useState } from "react";
-import { Table, TableHeader, TableBody, TableColumn, TableRow, TableCell, Spinner, useDisclosure, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Form, Input, Textarea } 
+import { Table, TableHeader, TableBody, TableColumn, TableRow, TableCell, Spinner, useDisclosure, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Form, Input, Textarea, Chip, Popover, PopoverContent, PopoverTrigger, DatePicker } 
 from "@nextui-org/react";
 import { useAsyncList } from "@react-stately/data";
 import Image from "next/image";
 import { getToken } from "@/app/actions/auth";
+import { CalendarDate } from "@internationalized/date";
 
 export default function Naprawy() {
     const [isLoading, setIsLoading] = React.useState(true);
     const [filterValue, setFilterValue] = React.useState("");
 
     const hasSearchFilter = Boolean(filterValue);
+
+    const statusColorMap = {
+        "Oczekiwanie": "danger",
+        "W trakcie": "warning",
+        "Zakonczona": "success"
+    }
 
     let list = useAsyncList({
         async load({ signal }) {
@@ -23,7 +30,11 @@ export default function Naprawy() {
                 }
             });
             let json = await res.json();
-            console.log(json);
+
+            json.map((el) => {
+                el.data_rozpoczecia = new Date(el.data_rozpoczecia).toLocaleDateString();
+                el.data_zakonczenia = new Date(el.data_zakonczenia).toLocaleDateString();
+            });
 
             setIsLoading(false);
 
@@ -54,7 +65,7 @@ export default function Naprawy() {
         if (hasSearchFilter) {
             filteredRepairs = filteredRepairs.filter((repair) => 
                 (
-                    repair.naprawaID + repair.stan + repair.data_rozpoczecia + repair.data_zakonczenia + repair.protokol_naprawy + repair.opis_usterki
+                    repair.naprawaID + repair.stan + repair.data_rozpoczecia + repair.data_zakonczenia + repair.protokol_naprawy + repair.opis_usterki + repair.mechanik.login + repair.pojazd.marka + repair.pojazd.model
                 ).toLowerCase().includes(filterValue.toLowerCase())
             );
         }
@@ -89,11 +100,23 @@ export default function Naprawy() {
         newModal.onOpen();
     }
 
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+
+    const getCalendarFromLocal = React.useCallback((date) => {
+        if (!date) return null;
+        const [day, month, year] = date.split(".");
+        return new CalendarDate(parseInt(year), parseInt(month), parseInt(day))
+    }, []);
+
     const editItem = (item) => {
-        setModalHeader("Edytowanie wpisu");
+        setModalHeader("Podglad wpisu");
         setNew(false);
+
+        setStartDate(getCalendarFromLocal(item.data_rozpoczecia));
+        setEndDate(getCalendarFromLocal(item.data_zakonczenia));
+
         setObj(item);
-        console.log(item);
         editModal.onOpen();
     };
 
@@ -126,21 +149,6 @@ export default function Naprawy() {
 
             console.log(res);
         }
-        else {
-            const res = await fetch('http://192.168.1.108:8080/przyjecie/naprawy', {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${await getToken()}`,
-                },
-                body: JSON.stringify({
-                    naprawaID: data.naprawaID,
-                    "mechanik": { "login": data.login },
-                })
-            })
-
-            console.log(res)
-        }
 
         list.reload();
     }
@@ -148,10 +156,20 @@ export default function Naprawy() {
     const renderCell = React.useCallback((repair, columnKey) => {
         const cellValue = repair[columnKey]
 
-        if (cellValue == null)
-            return "brak";
+        if (!cellValue) return (
+            <p className="text-black text-opacity-25">brak</p>
+        );
+
+        const mechanic = cellValue.login
+        const vehicle = cellValue.marka + " " + cellValue.model 
 
         switch (columnKey) {
+            case "stan":
+                return (
+                    <Chip color={statusColorMap[cellValue]} variant="flat">
+                        {cellValue}
+                    </Chip>
+                )
             case "opis_usterki":
                 return (
                     <div className="overflow-hidden max-h-10">
@@ -163,6 +181,14 @@ export default function Naprawy() {
                     <div className="overflow-hidden max-h-10">
                         {cellValue}
                     </div>
+                )
+            case "pojazd":
+                return (
+                    vehicle
+                )
+            case "mechanik":
+                return (
+                    mechanic
                 )
             default:
                 return cellValue;
@@ -207,10 +233,10 @@ export default function Naprawy() {
                         <TableColumn key="stan" allowsSorting>
                             Stan
                         </TableColumn>
-                        <TableColumn key="dataRozpoczecia" allowsSorting>
+                        <TableColumn key="data_rozpoczecia" allowsSorting>
                             Data Rozpoczecia
                         </TableColumn>
-                        <TableColumn key="dataZakonczenia" allowsSorting>
+                        <TableColumn key="data_zakonczenia" allowsSorting>
                             Data Zakończenia
                         </TableColumn>
                         <TableColumn key="opis_usterki" allowsSorting>
@@ -219,12 +245,12 @@ export default function Naprawy() {
                         <TableColumn key="protokol_naprawy" allowsSorting>
                             Protokol
                         </TableColumn>
-                        {/* <TableColumn key="vin">
-                            VIN
-                            </TableColumn>
-                            <TableColumn key="mechanikid">
-                            ID mechanika
-                            </TableColumn> */}
+                        <TableColumn key="pojazd">
+                            Pojazd
+                        </TableColumn>
+                        <TableColumn key="mechanik">
+                            Mechanik
+                        </TableColumn>
                     </TableHeader>
                     <TableBody 
                         emptyContent={"Brak wpisów do wyświetlenia."}
@@ -246,7 +272,7 @@ export default function Naprawy() {
                 </Table>
             </div>
             { obj && (
-                <Modal isOpen={editModal.isOpen} onOpenChange={editModal.onOpenChange} scrollBehavior="outside" size="5xl">
+                <Modal isOpen={editModal.isOpen} onOpenChange={editModal.onOpenChange} scrollBehavior="outside" size="xl">
                     <ModalContent>
                         {(onClose) => (
                             <Form onSubmit={onSubmit} autoComplete="off">
@@ -261,24 +287,30 @@ export default function Naprawy() {
                                         labelPlacement="outside-left"
                                     />
                                     <Input
+                                        className="w-48"
                                         isReadOnly
                                         label="Stan"
                                         name="stan"
                                         defaultValue={obj["stan"]}
+                                        color={statusColorMap[obj["stan"]]}
                                         labelPlacement="outside-left"
                                     />
-                                    <Input
+                                    <DatePicker 
                                         isReadOnly
-                                        label="Data Rozpoczęcia"
-                                        name="dataRozpoczecia"
-                                        defaultValue={obj["dataRozpoczecia"]}
+                                        disableAnimation
+                                        className="w-64"
+                                        label="Data Rozpoczecia"
+                                        name="data_rozpoczecia"
+                                        defaultValue={startDate}
                                         labelPlacement="outside-left"
                                     />
-                                    <Input
+                                    <DatePicker
                                         isReadOnly
+                                        disableAnimation
+                                        className="w-64"
                                         label="Data Zakończenia"
-                                        name="dataZakonczenia"
-                                        defaultValue={obj["dataZakonczenia"]}
+                                        name="data_zakonczenia"
+                                        defaultValue={endDate}
                                         labelPlacement="outside-left"
                                     />
                                     <Textarea 
@@ -298,22 +330,31 @@ export default function Naprawy() {
                                         labelPlacement="outside"
                                     />
                                     <Input 
-                                        isReadOnly={obj["mechanik"] ? true : false}
-                                        label="Login mechanika"
+                                        isReadOnly
+                                        label="Mechanik"
                                         name="login"
                                         defaultValue={obj["mechanik"] ? obj["mechanik"].login : null}
                                         color={obj["mechanik"] ? "default" : "warning"}
                                         labelPlacement="outside-left"
                                     />
+                                    <Popover placement="right-end">
+                                        <PopoverTrigger>
+                                            <Button variant="bordered" className="w-min">
+                                                Pojazd
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent>
+                                            <div className="m-2 flex flex-col gap-2">
+                                                <p>{obj["pojazd"]["vin"]}</p>
+                                                <p>{obj["pojazd"]["rejestracja"]}</p>
+                                                <p>{obj["pojazd"]["marka"] + " " + obj["pojazd"]["model"] + " " + obj["pojazd"]["rocznik"]}</p>
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
                                 </ModalBody>
                                 <ModalFooter>
                                     <Button color="danger" variant="light" onPress={onClose}>
                                         Zamknij
-                                    </Button>
-                                    <Button color="primary" type="submit" onPress={onClose}
-                                        isDisabled={obj["mechanik"] ? true : false}
-                                    >
-                                        Przypisz mechanika
                                     </Button>
                                 </ModalFooter>
                             </Form>

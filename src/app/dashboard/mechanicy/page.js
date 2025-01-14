@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from "react";
-import { Table, TableHeader, TableBody, TableColumn, TableRow, TableCell, Spinner, useDisclosure, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Form, Input, Textarea, getKeyValue } 
+import { Table, TableHeader, TableBody, TableColumn, TableRow, TableCell, Spinner, useDisclosure, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Form, Input, Textarea, getKeyValue, Chip } 
 from "@nextui-org/react";
 import { useAsyncList } from "@react-stately/data";
 import Image from "next/image";
@@ -13,6 +13,11 @@ export default function Naprawy() {
     const [maxId, setMaxId] = React.useState(0);
 
     const hasSearchFilter = Boolean(filterValue);
+
+    const statusColorMap = {
+        TAK: "success",
+        NIE: "danger"
+    }
 
     let list = useAsyncList({
         async load({ signal }) {
@@ -143,6 +148,21 @@ export default function Naprawy() {
         list.reload();
     }
 
+    const renderCell = React.useCallback((mechanic, columnKey) => {
+        const cellValue = mechanic[columnKey]
+
+        switch (columnKey) {
+            case "czyZatrudniony":
+                return (
+                    <Chip className="capitalize" color={statusColorMap[cellValue]} variant="flat">
+                        {cellValue}
+                    </Chip>
+                )
+            default:
+                return cellValue;
+        }
+    }, []);
+
     return (
         <>
             <div className="flex justify-between items-end mx-4">
@@ -206,7 +226,7 @@ export default function Naprawy() {
                             onClick={() => editItem(item)}
                             className="hover:bg-gray-100 cursor-pointer"
                             >
-                                {(columnKey) => <TableCell>{getKeyValue(item, columnKey)}</TableCell>}
+                                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
                             </TableRow>
                         )}
                     </TableBody>
@@ -263,7 +283,7 @@ export default function Naprawy() {
                                         Anuluj
                                     </Button>
                                     <Button 
-                                        color="danger" variant="bordered" type="submit" onPress={onClose}
+                                        color="danger" variant={obj["czyZatrudniony"] == "NIE" ? "bordered" : "flat"} type="submit" onPress={onClose}
                                         isDisabled={obj["czyZatrudniony"] == "NIE" }
                                     >
                                         Zwolnij

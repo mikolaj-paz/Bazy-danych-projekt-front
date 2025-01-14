@@ -1,12 +1,14 @@
-import { Button, Link, Navbar, NavbarBrand, NavbarContent, NavbarItem } from "@nextui-org/react"
-import { logout } from "../actions/auth"
+import { Button, Link, Navbar, NavbarBrand, NavbarContent, NavbarItem, Chip } from "@nextui-org/react"
+import { getLogin, logout } from "../actions/auth"
 
 import Image from "next/image"
 
-export default function DashboardLayout({ children }) {
+export default async function DashboardLayout({ children }) {
+  const login = await getLogin();
+
   return (
     <>
-        <Navbar isBordered>
+        <Navbar isBordered maxWidth="full">
           <NavbarBrand justify="left">
             <Image 
               src="/mechanic-svgrepo-com.svg"
@@ -26,6 +28,11 @@ export default function DashboardLayout({ children }) {
             </NavbarItem>
           </NavbarContent>
           <NavbarContent justify="end">
+            <NavbarItem>
+              <Chip variant="flat">
+                {login}
+              </Chip>
+            </NavbarItem>
             <NavbarItem>
               <Button onPress={logout} color="primary" variant="flat">
                 Wyloguj
