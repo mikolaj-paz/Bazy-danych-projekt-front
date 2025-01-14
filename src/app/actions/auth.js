@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createSession, deleteSession } from "../lib/session";
 import { verifySession } from "../lib/dal";
+import { cache } from "react";
 
 export async function signup( formData ) {
     'use server'
@@ -21,12 +22,15 @@ export async function signup( formData ) {
         })
     })
 
-    const json = await res.json()
-
-    const isAdmin = json.roles == 'ROLE_ADMIN'
-
-    await createSession('1', isAdmin ? 'admin' : 'worker', json.token)
-    redirect('/dashboard')
+    switch (res.status) {
+        case 200: // SUCCESS
+            const json = await res.json()
+            const isAdmin = json.roles == 'ROLE_ADMIN'
+            await createSession('1', isAdmin ? 'admin' : 'worker', json.token, login)
+            redirect('/dashboard')
+        case 401: // AUTHENTICATION FAILED
+            redirect('/?message=Niepoprawne-dane-logowania')
+    }
 }
 
 export async function logout() {
@@ -34,8 +38,12 @@ export async function logout() {
     redirect('/')
 }
 
-export async function getToken() {
+export const getToken = cache(async () => {
     const session = await verifySession();
-
     return session.token;
-}
+})
+
+export const getLogin = cache(async () => {
+    const session = await verifySession();
+    return session.login;
+})

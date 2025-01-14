@@ -24,12 +24,12 @@ export async function decrypt(session) {
     }
 }
 
-export async function createSession(userID, role, token) {
+export async function createSession(userID, role, token, login) {
     const expiresAt = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) // 24h
-    const session = await encrypt({ userID, role, token, expiresAt })
+    const session = await encrypt({ userID, role, token, login, expiresAt })
     const cookieStore = await cookies()
 
-    console.log(`NEW SESSION\nrole: ${role}\ntoken: ${token}`)
+    console.log(`NEW SESSION\nrole: ${role}\ntoken: ${token}\nlogin: ${login}`)
 
     cookieStore.set('session', session, {
         httpOnly: true,

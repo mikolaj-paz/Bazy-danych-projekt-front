@@ -1,11 +1,15 @@
 'use client'
 
-import { Button, Checkbox, Form, Input, Switch } from "@nextui-org/react";
+import { Button, Form, Input } from "@nextui-org/react";
 import { signup } from "./actions/auth";
 
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
 export default function Home() {
+    const searchParams = useSearchParams();
+    const message = searchParams.get('message') ? searchParams.get('message').replace(/-/gi, " ") : "";
+
     return (
         <div className="flex flex-col items-center justify-center h-screen">
             <Image 
@@ -32,15 +36,13 @@ export default function Home() {
                     label="Hasło"
                     type="password"
                 />
-                <div className="flex justify-center gap-4 w-full">
-                    {/* <Checkbox type="checkbox" name="admin">
-                        Administrator
-                    </Checkbox> */}
+                <div className="flex justify-center w-full">
                     <Button className="w-3/4 rounded-full mt-4" type="submit" variant="solid" color="primary">
                         Zaloguj
                     </Button>
                 </div>
             </Form>
+            <p className="flex justify-center text-sm text-danger w-full">{message}</p>
        </div>
     )
 }
