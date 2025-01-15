@@ -32,8 +32,10 @@ export default function Naprawy() {
             let json = await res.json();
 
             json.map((el) => {
-                el.data_rozpoczecia = new Date(el.data_rozpoczecia).toLocaleDateString();
-                el.data_zakonczenia = new Date(el.data_zakonczenia).toLocaleDateString();
+                if (el.data_rozpoczecia)
+                    el.data_rozpoczecia = new Date(el.data_rozpoczecia).toLocaleDateString();
+                if (el.data_zakonczenia)
+                    el.data_zakonczenia = new Date(el.data_zakonczenia).toLocaleDateString();
             });
 
             setIsLoading(false);
@@ -65,7 +67,9 @@ export default function Naprawy() {
         if (hasSearchFilter) {
             filteredRepairs = filteredRepairs.filter((repair) => 
                 (
-                    repair.naprawaID + repair.stan + repair.data_rozpoczecia + repair.data_zakonczenia + repair.protokol_naprawy + repair.opis_usterki + repair.mechanik.login + repair.pojazd.marka + repair.pojazd.model
+                    repair.naprawaID + repair.stan + repair.data_rozpoczecia + repair.data_zakonczenia + repair.protokol_naprawy + repair.opis_usterki
+                    + (repair.mechanik ? repair.mechanik.login : "") 
+                    + (repair.pojazd ? (repair.pojazd.marka + repair.pojazd.model) : "")
                 ).toLowerCase().includes(filterValue.toLowerCase())
             );
         }

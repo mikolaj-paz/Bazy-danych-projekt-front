@@ -31,17 +31,19 @@ export default function Naprawy() {
                 },   
             });
             let json = await res.json();
-
+            
             const mechanicLogin = await getLogin();
-            json = json.filter((repair) => repair.mechanik.login == mechanicLogin);
+            json = json.filter((repair) => repair.mechanik ? repair.mechanik.login == mechanicLogin : false);
 
             let maxValue = maxId;
             json.map((el) => {
                 const valueFromObject = el.naprawaID;
                 maxValue = Math.max(maxValue, valueFromObject);
-
-                el.data_rozpoczecia = new Date(el.data_rozpoczecia).toLocaleDateString();
-                el.data_zakonczenia = new Date(el.data_zakonczenia).toLocaleDateString();
+                
+                if (el.data_rozpoczecia)
+                    el.data_rozpoczecia = new Date(el.data_rozpoczecia).toLocaleDateString();
+                if (el.data_zakonczenia)
+                    el.data_zakonczenia = new Date(el.data_zakonczenia).toLocaleDateString();
             });
             setMaxId(maxValue + 1);
 
@@ -73,7 +75,8 @@ export default function Naprawy() {
         
         if (hasSearchFilter) {
             filteredRepairs = filteredRepairs.filter((repair) => (
-                    repair.naprawaID + repair.stan + repair.data_rozpoczecia + repair.data_zakonczenia + repair.protokol_naprawy + repair.opis_usterki + repair.pojazd.model + repair.pojazd.marka
+                    repair.naprawaID + repair.stan + repair.data_rozpoczecia + repair.data_zakonczenia + repair.protokol_naprawy + repair.opis_usterki
+                    + (repair.pojazd ? (repair.pojazd.marka + repair.pojazd.model) : "")
                 ).toLowerCase().includes(filterValue.toLowerCase())
             );
         }
@@ -135,13 +138,11 @@ export default function Naprawy() {
     const onStartingDateChange = React.useCallback((value) => {
         setStartingDateChanged(true);
         setStartDate(value.toString());
-        console.log(value.toString());
     }, []);
 
     const onEndDateChange = React.useCallback((value) => {
         setEndDateChanged(true);
         setEndDate(value.toString());
-        console.log(value.toString());
     }, []);
 
     const onDescriptionChange = React.useCallback((value) => {
@@ -152,23 +153,17 @@ export default function Naprawy() {
         e.preventDefault();
         const data = Object.fromEntries(new FormData(e.currentTarget));
         if (isNew) {
-            const res = await fetch('http://192.168.1.108:8080/dodaj/nowe_zgloszenie', {
-                method: 'POST',
+            const res = await fetch('http://192.168.1.108:8080/przyjecie/naprawy', {
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${await getToken()}`,
                 },
                 body: JSON.stringify({
-                    naprawa: {
-                        "naprawaID": data.naprawaID,
-                    },
-                    mechanik: {
-                        "login": `${await getLogin()}`,
-                    }
+                    naprawaID: data.naprawaID,
+                    mechanikLogin: `${await getLogin()}`,
                 }),
             });
-
-            console.log(res);
         }
         else {
             if (startingDateChanged) {

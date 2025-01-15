@@ -221,7 +221,6 @@ export default function Naprawy() {
                                 <ModalHeader className="flex flex-col gap-1">{modalHeader}</ModalHeader>
                                 <ModalBody className="w-full">
                                     <Input 
-                                        className="w-24"
                                         isReadOnly
                                         label="VIN"
                                         name="vin"
@@ -229,28 +228,24 @@ export default function Naprawy() {
                                         labelPlacement="outside-left"
                                     />
                                     <Input
-                                        isReadOnly
                                         label="Marka"
                                         name="marka"
                                         defaultValue={obj["marka"]}
                                         labelPlacement="outside-left"
                                     />
                                     <Input
-                                        isReadOnly
                                         label="Model"
                                         name="model"
                                         defaultValue={obj["model"]}
                                         labelPlacement="outside-left"
                                     />
                                     <Input
-                                        isReadOnly
                                         label="Rocznik"
                                         name="rocznik"
                                         defaultValue={obj["rocznik"]}
                                         labelPlacement="outside-left"
                                     />
                                     <Input
-                                        isReadOnly
                                         label="Rejestracja"
                                         name="rejestracja"
                                         defaultValue={obj["rejestracja"]}
